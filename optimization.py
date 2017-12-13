@@ -55,7 +55,7 @@ def schedulecost(sol):
         totalprice += outbound[2]
         totalprice += returnf[2]
 
-        # Track the latest arrival andearliest departure
+        # Track the latest arrival and earliest departure
         if latestarrival<getminutes(outbound[1]): latestarrival=getminutes(outbound[1])
         if earliestdep> getminutes(returnf[0]): earliestdep = getminutes(returnf[0])
 
@@ -162,3 +162,52 @@ def annealingoptimize(domain, costf, T=10000.0, cool = 0.95, step = 1):
 
 s = annealingoptimize(domain, schedulecost)
 print(schedulecost(s))
+
+def geneticoptimize(domain, costf, popsize = 50, step = 1, mutprob=0.2, elite=0.2, maxiter = 100):
+    # Mutation Operation
+    def mutate(vec):
+        i = random.randint(0, len(domain)-1)
+        if random.random() < 0.5 and vec[i]>domain[i][0]:
+            return vec[0:i]+[vec[i]-step]+vec[i+1:]
+        elif vec[i]<domain[i][1]:
+            return vec[0:i]+[vec[i]+step] + vec[i+1:]
+    # Crossover operation
+    def crossover(r1, r2):
+        i = random.randint(1, len(domain)-2)
+        return r1[0:i] + r2[i:]
+
+    # Build the initial population
+    pop = []
+    for i in range(popsize):
+        vec = [random.randint(domain[i][0], domain[i][1]) for i in range(len(domain))]
+        pop.append(vec)
+
+    # How many winners from each generation?
+    topelite = int(elite*popsize)
+
+    # Main loop
+    for i in range(maxiter):
+        scores=[(costf(v), v) for v in pop]
+        scores.sort()
+        ranked =[v for (s, v) in scores]
+
+        # Start with the pure winners
+        pop = ranked[0: topelite]
+
+        # Add mutated and bred forms of the winners
+        while len(pop)<popsize:
+            if random.random() < mutprob:
+                #Mutationj
+                c = random.randint(0, topelite)
+                pop.append(mutate(ranked[c]))
+            else:
+                # Crossovers
+                c1 = random.randint(0, topelite)
+                c2 = random.randint(0, topelite)
+                pop.append(crossover(ranked[c1], ranked[c2]))
+        # Print current best score
+        print(scores[0][0])
+    return scores[0][1]
+
+s = geneticoptimize(domain, schedulecost)
+printschedule(s)
